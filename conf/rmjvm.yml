@@ -1,0 +1,27 @@
+### This is only an example.
+### Please modify according your needs
+
+
+application:
+  uri: "service:jmx:rmi:///jndi/rmi://<YOUR-JMX-HOST>:<YOUR-JMX-PORT>/jmxrmi"
+  directory: "<DIRECTORY WHERE IS LOCATED JAVA APPLICATION>"
+
+
+# This is just few examples for monitoring
+
+actions:
+  - name: monitor01
+    cmd: "sendFilesApp -h hostname"
+    timeout: 200 # ms
+    monitor: ['cpu', 'mem']
+    executions: 20
+  - name: monitor02
+    cmd: "receiveFilesApp -h hostname"
+    monitor: ['mem']
+    timeout: 100 # ms
+    executions: 2
+
+# configure a tracer
+# there are few examples, such zipkin
+tracer:
+  - uri: "http://my-zipkin-deployment:9201"

@@ -1,0 +1,30 @@
+### This is only an example.
+### Please modify according your needs
+
+
+application:
+  uri: "service:jmx:rmi:///jndi/rmi://localhost:3333/jmxrmi"
+  directory: "c:/Users/bastiao/Projects/dicoogle/dicoogle/target/"
+
+
+# This is just few examples for monitoring Dicoogle (e.g. https://github.com/BMDSoftware/dicoogle)
+# Others examples could also be used.
+
+actions:
+  - name: monitor-dicom-store
+    cmd: "c:\\Users\\bastiao\\Software\\dcm4che-5.16.3-bin\\dcm4che-5.16.3\\bin\\ianscu.bat -c DICOOGLE-STORAGE@localhost:6666"
+    timeout: 0 # ms
+    monitor: ['cpu', 'mem']
+    executions: 20
+  - name: monitor-dicom-qr
+    cmd: "c:\\Users\\bastiao\\Software\\dcm4che-5.16.3-bin\\dcm4che-5.16.3\\bin\\ianscu.bat -c DICOOGLE-STORAGE@localhost:1045"
+    monitor: ['mem']
+    timeout: 0 # ms
+    executions: 2
+
+# configure a tracer
+# there are few examples, such zipkin
+tracer:
+  - uri: "http://my-zipkin-deployment:9201"
+
+
