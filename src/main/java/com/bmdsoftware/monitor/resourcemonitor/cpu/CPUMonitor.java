@@ -32,5 +32,6 @@ import java.io.IOException;
 public interface CPUMonitor {
 
     public void monitor() throws IOException;
+    public Long getCpuCycle() ;
 
 }

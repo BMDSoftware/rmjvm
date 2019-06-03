@@ -27,12 +27,16 @@
 
 package com.bmdsoftware.monitor.resourcemonitor.memory.imp;
 
+import com.bmdsoftware.monitor.resourcemonitor.cpu.imp.CPUMonitorCheck;
 import com.bmdsoftware.monitor.resourcemonitor.jmx.JMXConnection;
 import com.bmdsoftware.monitor.resourcemonitor.memory.MemoryAnalysisUtil;
 import com.bmdsoftware.monitor.resourcemonitor.memory.MemoryChecker;
 import com.sun.management.HotSpotDiagnosticMXBean;
+import org.gridkit.jvmtool.heapdump.HeapHistogram;
 import org.netbeans.lib.profiler.heap.Heap;
 import org.netbeans.lib.profiler.heap.HeapFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
@@ -50,13 +54,12 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.File;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.Queue;
 
 import static com.bmdsoftware.monitor.resourcemonitor.memory.MemoryAnalysisUtil.printHistogram;
-import static com.bmdsoftware.monitor.resourcemonitor.memory.MemoryAnalysisUtil.reportStrings;
 
 
 /**
@@ -64,8 +67,14 @@ import static com.bmdsoftware.monitor.resourcemonitor.memory.MemoryAnalysisUtil.
  */
 public class MemoryCheckImp implements MemoryChecker {
 
+    private static Logger logger = LoggerFactory.getLogger(MemoryCheckImp.class);
+
+
     private JMXConnection jmxConnection;
     private String nameHeapFile;
+    private List<HeapHistogram.ClassRecord> records;
+
+    private Integer SAMPLE_COUNT = 3;
 
     private Long totalMemory;
 
@@ -101,7 +110,7 @@ public class MemoryCheckImp implements MemoryChecker {
         MemoryAnalysisUtil.heap = heap;
 
 
-        printHistogram();
+        records = printHistogram(10);
         // get the memory composite information
 
 
@@ -112,9 +121,9 @@ public class MemoryCheckImp implements MemoryChecker {
         long tempMemory = 0;
         CompositeData cd = null;
 
-        cpuBefore = Long.parseLong("100");
+        cpuBefore = Long.parseLong("0");
 
-        int sampleCount = 10;
+        int sampleCount = SAMPLE_COUNT;
 
     // call the garbage collector before the test using the Memory Mbean
         try {
@@ -129,7 +138,7 @@ public class MemoryCheckImp implements MemoryChecker {
             e.printStackTrace();
         }
 
-//create a loop to get values every second (optional)
+        //create a loop to get values every second (optional)
         for (int i = 0; i < sampleCount; i++) {
 
             //get an instance of the HeapMemoryUsage Mbean
@@ -165,11 +174,7 @@ public class MemoryCheckImp implements MemoryChecker {
 
             //System.out.println("Used memory: " + " " + cd.get("used") + " Used cpu: " + osMbean); //print memory usage
             tempMemory = tempMemory + Long.parseLong(cd.get("used").toString());
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+
         }
 
         //get system time and cpu time from last poll
@@ -178,10 +183,14 @@ public class MemoryCheckImp implements MemoryChecker {
         long cpuDiff = cpuAfter - cpuBefore; //find cpu time between our first and last jmx poll
         System.out.println("Cpu diff in milli seconds: " + cpuDiff / 1000000); //print cpu time in miliseconds
         System.out.println("average memory usage is: " + tempMemory / sampleCount);//print average memory usage
+        this.totalMemory = tempMemory / sampleCount;
+        jmxc.close();
+
+
     }
 
 
-        public JMXConnection getJmxConnection() {
+    public JMXConnection getJmxConnection() {
         return jmxConnection;
     }
 
@@ -198,9 +207,18 @@ public class MemoryCheckImp implements MemoryChecker {
     }
 
 
-
     public Heap getHeap() {
         return heap;
+    }
+
+
+    public Long getTotalMemory() {
+        return totalMemory;
+    }
+
+    @Override
+    public List<HeapHistogram.ClassRecord> getClassRecords() {
+        return records;
     }
 
 

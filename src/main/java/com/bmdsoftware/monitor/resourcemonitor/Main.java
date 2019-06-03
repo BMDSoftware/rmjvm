@@ -1,18 +1,18 @@
 /**
  * Copyright (c) 2019, BMD software
  * All rights reserved.
- *
+ * <p>
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the <organization> nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- *
+ * * Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ * * Neither the name of the <organization> nor the
+ * names of its contributors may be used to endorse or promote products
+ * derived from this software without specific prior written permission.
+ * <p>
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -31,6 +31,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.management.MonitorInfo;
 import java.net.MalformedURLException;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -55,7 +56,12 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
 import com.bmdsoftware.monitor.resourcemonitor.actions.Action;
+import com.bmdsoftware.monitor.resourcemonitor.actions.imp.ProcessRun;
 import com.bmdsoftware.monitor.resourcemonitor.conf.YmlConfig;
+import com.bmdsoftware.monitor.resourcemonitor.cpu.CPUMonitor;
+import com.bmdsoftware.monitor.resourcemonitor.cpu.imp.CPUMonitorCheck;
+import com.bmdsoftware.monitor.resourcemonitor.export.EntrySummary;
+import com.bmdsoftware.monitor.resourcemonitor.export.ExporterCSV;
 import com.bmdsoftware.monitor.resourcemonitor.jmx.JMXConnection;
 import com.bmdsoftware.monitor.resourcemonitor.memory.MemoryChecker;
 import com.bmdsoftware.monitor.resourcemonitor.memory.imp.MemoryCheckImp;
@@ -74,14 +80,14 @@ import org.slf4j.LoggerFactory;
 /**
  *
  * The main class for the rmjvm
- * 
+ *
  * @author Luís A. Bastião Silva <luis.kop@gmail.com>
  */
 public class Main {
 
     private static String PROJECT_NAME = "rmjvm";
     private static String VERSION = "1.0";
-    
+
     private static Logger logger = LoggerFactory.getLogger(Main.class);
 
     private boolean check = false;
@@ -95,11 +101,16 @@ public class Main {
     // Yml Configuration.
     private YmlConfig config = null;
 
+    private MemoryChecker memoryChecker;
+    private CPUMonitor cpuMonitorChecker;
+
+    private ExporterCSV exporterCSV;
+
 
     /**
-     * 
+     *
      * Constructor with major settings
-     * 
+     *
      * @param check
      * @param checkMemory
      * @param checkCPU
@@ -124,7 +135,6 @@ public class Main {
 
     }
 
-
     public static void main(String[] args) {
 
         logger.info("ResourceMonitor: started");
@@ -138,7 +148,7 @@ public class Main {
         Option help = new Option("h", "help", false, "help shows how to use the rmjvm and what its core funcionality");
         options.addOption(help);
 
-        Option hostOpt = new Option("ho", "host",  false, "set the hostname for JMX of java listen process");
+        Option hostOpt = new Option("ho", "host", false, "set the hostname for JMX of java listen process");
         hostOpt.setArgs(1);
         options.addOption(hostOpt);
 
@@ -146,9 +156,9 @@ public class Main {
         portOpt.setArgs(1);
         options.addOption(portOpt);
 
-        
+
         Option checkOpt = new Option("c", "check", false, "check will run all the actions" +
-         "and wait until it is requested to stop. Meanwhile it will monitoring the memory and compare ");
+                "and wait until it is requested to stop. Meanwhile it will monitoring the memory and compare ");
         checkOpt.setArgs(0);
         options.addOption(checkOpt);
 
@@ -157,20 +167,40 @@ public class Main {
         options.addOption(skipOpt);
 
 
-        Option exportOpt = new Option("e", "export", false, "export format (csv, output) ");
+        Option exportOpt = new Option("e", "export", true,
+                "export format (csv, output) ");
         exportOpt.setArgs(1);
         options.addOption(exportOpt);
 
         Option exportDirOpt = new Option("ed", "exportdirectory", false, "export directory where will be stored the files.");
         exportDirOpt.setArgs(1);
         options.addOption(exportDirOpt);
-        
+
+
+        Option configOpt = new Option("cf", "config", false, "the configuration file (by default conf/rmjvm.yml)");
+        configOpt.setArgs(1);
+        options.addOption(configOpt);
 
         // Configure Command Line Parser
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
         Main app = new Main();
-        
+
+
+        // Parse options from command line.
+        try {
+            cmd = parser.parse(options, args);
+        } catch (ParseException e) {
+            logger.error("ResourceMonitor: error while parsing the command line options", e);
+            System.err.println("Error: error while parsing the command line options" + configurationFile);
+            System.exit(Consts.ERROR_WHILE_PARSING);
+        }
+
+        if (cmd.hasOption("config")) {
+            String configFile = cmd.getOptionValue("config");
+            configurationFile = configFile;
+        }
+
         // Load the configuration file.
         // If any options is passed by the command line, the command line will overwrite
         // the configurations file
@@ -185,83 +215,103 @@ public class Main {
             System.exit(Consts.ERROR_WHILE_PARSING);
         }
 
-        // Parse options from command line.
-        try {
-            cmd = parser.parse( options, args);
-        } catch (ParseException e) {
-            logger.error("ResourceMonitor: error while parsing the command line options", e);
-            System.err.println("Error: error while parsing the command line options" + configurationFile);
-            System.exit(Consts.ERROR_WHILE_PARSING);
-        }
 
         // Check the options and call the correct options.
 
-        if (cmd.hasOption("help")) {
+        if (cmd.hasOption("help") || args.length ==0) {
             HelpFormatter formatter = new HelpFormatter();
             System.out.println(PROJECT_NAME + " " + VERSION);
             formatter.printHelp(PROJECT_NAME, options, true);
+            System.exit(0);
+
         } else if (cmd.hasOption("version")) {
             System.out.println("version: " + VERSION);
-        }
-        else if (cmd.hasOption("check")) {
+        } else if (cmd.hasOption("check")) {
             System.out.println("Checking ..");
             app.setCheck(true);
-        }
-        else if (cmd.hasOption("host")) {
+        } else if (cmd.hasOption("host")) {
             System.out.println("Host: ");
             String hostname = cmd.getOptionValue("host");
             app.setHostname(hostname);
-        }
-        else if (cmd.hasOption("port")) {
+        } else if (cmd.hasOption("port")) {
             System.out.println("Port: ");
             String port = cmd.getOptionValue("port");
             Integer portInt = Integer.parseInt(port);
             app.setPort(portInt);
-        }
-        else if (cmd.hasOption("skip")) {
+        } else if (cmd.hasOption("skip")) {
             // Get what are going skip analysis. 
-            String [] skipOpts = cmd.getOptionValues("skip");
-            for (int i = 0; i<i++; i++)
-                System.out.println("Skip will be: "+skipOpts[i] );
-        }
-        else if (cmd.hasOption("export")) {
+            String[] skipOpts = cmd.getOptionValues("skip");
+            for (int i = 0; i < i++; i++)
+                System.out.println("Skip will be: " + skipOpts[i]);
+        } else if (cmd.hasOption("export")) {
             logger.debug("Export mode: enabled.");
             app.setExport(true);
-        }
-        else if (cmd.hasOption("exportdirectory")) {
+        } else if (cmd.hasOption("exportdirectory")) {
             String exportdirectory = cmd.getOptionValue("exportdirectory");
             app.setExportDirectory(exportdirectory);
-            System.out.println("Export Directory: "+ exportdirectory);
+            System.out.println("Export Directory: " + exportdirectory);
+        }
+        app.setExport(cmd.hasOption("export"));
+
+        if (app.isExport()) {
+
+            String fileNameSuffix =  new SimpleDateFormat("dd.MM.yyyy HH.mm.ss").format(new Date()) + ".hprof";
+            // Export metrics to be analysed.
+            String fileNameBasicMetrics = "rmjvm-metrics_"+fileNameSuffix+".csv";
+            // [ActionName, ExecutionIteration, Timestamp, UsedMemory]
+
+            String fileNameMem = "rmjvm-heap-summary_"+fileNameSuffix+".csv";
+            ExporterCSV exportHeapFile = new ExporterCSV(fileNameBasicMetrics, fileNameMem);
+            app.setExporterCSV(exportHeapFile);
+
+            // Write heap summary
+            // [ActionName, ExecutionIteration, NameOfObject, ByteOrderBySize, Size, Count]
+
+            try {
+                app.getExporterCSV().exportSummary();
+                app.getExporterCSV().exportHeapSummary();
+
+            } catch (IOException e) {
+                logger.error("Problem exporting file ", e);
+            }
+
         }
 
-        if (app.isCheck()){
+        if (app.isCheck()) {
+            // Check and measurement
             System.out.println("Tracing actions to monitor Resources (e.g. CPU/Mem)");
-            System.out.println("JMX URI to trace: "+ app.getConfig().getUriJmxService());
+            System.out.println("JMX URI to trace: " + app.getConfig().getUriJmxService());
             app.check();
         }
-
     }
 
     /**
      * Checking the memory dumps.
      * All the options has been already loading. 
      */
-    public void check(){
+    public void check() {
 
         // Get actions 
         List<Action> actions = this.config.getActions();
+        JMXConnection connection = new JMXConnection(config.getUriJmxService());
+        memoryChecker = new MemoryCheckImp(connection, config.getApplicationDirectory());
+        cpuMonitorChecker = new CPUMonitorCheck(connection);
+
 
         // Execute the actions 
-        if (actions!=null) {
+        if (actions != null) {
+
             for (Action a : actions) {
                 logger.debug("Action " + a.toString());
 
-                for (int i = 0; i<a.getExecutions(); i++){
+                for (int i = 0; i < a.getExecutions(); i++) {
                     // Execute
                     a.execute();
+                    Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
 
                     // Wait a timeout before monitor
-                    if (a.getTimeout()>0) {
+                    if (a.getTimeout() > 0) {
                         try {
 
                             Thread.sleep(a.getTimeout());
@@ -270,54 +320,48 @@ public class Main {
                         }
                     }
 
-                    JMXConnection connection = new JMXConnection(config.getUriJmxService());
                     // Monitor
                     List<String> monitor = a.getMonitor();
-                    if (monitor.contains("cpu")){
-                      // TODO: to be implemented.
-                    }
-                    if (monitor.contains("mem")){
-
-                        MemoryChecker check = new MemoryCheckImp(connection,config.getApplicationDirectory());
+                    if (monitor.contains("cpu")) {
                         try {
-                            check.monitor();
+                            cpuMonitorChecker.monitor();
+                        } catch (IOException e) {
+                            logger.error("Error while monitor CPU time ", e);
+                        }
+                    }
+                    if (monitor.contains("mem")) {
+
+                        try {
+                            memoryChecker.monitor();
                         } catch (IOException e) {
                             logger.error("Error while monitoring memory ", e);
                         }
+                    }
+                    if (this.export){
+                        ProcessRun action = (ProcessRun) a;
+                        EntrySummary entrySummary = new EntrySummary(action.getName(),""+i,
+                                ""+sdf.format(timestamp),""+cpuMonitorChecker.getCpuCycle(),
+                                ""+memoryChecker.getTotalMemory());
+                        entrySummary.setRecords(memoryChecker.getClassRecords());
+                        try {
+                            exporterCSV.exportSummaryEntry(entrySummary);
+                            exporterCSV.exportHeapSummaryEntries(entrySummary);
+                        } catch (IOException e) {
+                            logger.error("Export problem ", e);
+                        }
 
                     }
-
-
                 }
 
             }
-        }
-        else
-        {
+        } else {
             System.out.println("Warning: no actions available to execute. Please configure it first.");
         }
         // Execute the actions and dumps the results 
 
     }
-    /**
-     * 
-     */
-    public void monitorCPU(){
 
-    }
-
-    /**
-     * 
-     */
-    public void monitorMem(){
-
-    }
-
-    public void getFinalReport(){
-
-    }
-
-    public static void getMetrics(){
+    public static void getMetrics() {
 
 
         String hostName = "localhost";
@@ -326,14 +370,14 @@ public class Main {
         JMXServiceURL u = null;
         try {
             u = new JMXServiceURL(
-                    "service:jmx:rmi:///jndi/rmi://" + hostName + ":" + portNum +  "/jmxrmi");
+                    "service:jmx:rmi:///jndi/rmi://" + hostName + ":" + portNum + "/jmxrmi");
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
         try {
             JMXConnector c = JMXConnectorFactory.connect(u);
 
-//create object instances that will be used to get memory and operating system Mbean objects exposed by JMX; create variables for cpu time and system time before
+            //create object instances that will be used to get memory and operating system Mbean objects exposed by JMX; create variables for cpu time and system time before
             Object memoryMbean = null;
             Object osMbean = null;
             long cpuBefore = 0;
@@ -344,17 +388,17 @@ public class Main {
 
             cpuBefore = 0;
 
-// call the garbage collector before the test using the Memory Mbean
+            // call the garbage collector before the test using the Memory Mbean
             jmxc.getMBeanServerConnection().invoke(new ObjectName("java.lang:type=Memory"), "gc", null, null);
 
-//create a loop to get values every second (optional)
+            //create a loop to get values every second (optional)
             for (int i = 0; i < samplesCount; i++) {
 
-//get an instance of the HeapMemoryUsage Mbean
+                //get an instance of the HeapMemoryUsage Mbean
                 memoryMbean = jmxc.getMBeanServerConnection().getAttribute(new ObjectName("java.lang:type=Memory"), "HeapMemoryUsage");
                 cd = (CompositeData) memoryMbean;
-//get an instance of the OperatingSystem Mbean
-                osMbean = jmxc.getMBeanServerConnection().getAttribute(new ObjectName("java.lang:type=OperatingSystem"),"ProcessCpuTime");
+                //get an instance of the OperatingSystem Mbean
+                osMbean = jmxc.getMBeanServerConnection().getAttribute(new ObjectName("java.lang:type=OperatingSystem"), "ProcessCpuTime");
                 System.out.println("Used memory: " + " " + cd.get("used") + " Used cpu: " + osMbean); //print memory usage
                 tempMemory = tempMemory + Long.parseLong(cd.get("used").toString());
 
@@ -365,13 +409,11 @@ public class Main {
                 System.out.println("Used NON HEAP memory: " + " " + cd.get("used") + " Used cpu: " + osMbean); //print memory usage
 
 
-
                 Thread.sleep(1000); //delay for one second
             }
 
-//get system time and cpu time from last poll
+            //get system time and cpu time from last poll
             long cpuAfter = Long.parseLong(osMbean.toString());
-
 
 
             long cpuDiff = cpuAfter - cpuBefore; //find cpu time between our first and last jmx poll
@@ -384,23 +426,16 @@ public class Main {
             objectInstances.stream().forEach(instance -> System.out.println(instance));
             MBeanInfo info = c.getMBeanServerConnection().getMBeanInfo(new ObjectName("java.lang:type=Memory"));
 
-            for (MBeanAttributeInfo element : info.getAttributes())
-            {
+            for (MBeanAttributeInfo element : info.getAttributes()) {
                 Object value;
-                if (element.isReadable())
-                {
-                    try
-                    {
+                if (element.isReadable()) {
+                    try {
                         value = c.getMBeanServerConnection().getAttribute(new ObjectName("java.lang:type=Memory"), element.getName());
                         System.out.println(element.getName());
                         System.out.println(value.toString());
+                    } catch (Exception e) {
                     }
-                    catch (Exception e)
-                    {
-                    }
-                }
-                else
-                {
+                } else {
                 }
             }
 /*
@@ -505,10 +540,6 @@ public class Main {
         return this;
     }
 
-    public Main export(boolean export) {
-        this.export = export;
-        return this;
-    }
 
     public Main exportDirectory(String exportDirectory) {
         this.exportDirectory = exportDirectory;
@@ -551,6 +582,17 @@ public class Main {
         this.config = config;
     }
 
+
+    public ExporterCSV getExporterCSV() {
+        return exporterCSV;
+    }
+
+    public void setExporterCSV(ExporterCSV exporterCSV) {
+        this.exporterCSV = exporterCSV;
+    }
+
+
+
     @Override
     public boolean equals(Object o) {
         if (o == this)
@@ -570,14 +612,13 @@ public class Main {
     @Override
     public String toString() {
         return "{" +
-            " check='" + isCheck() + "'" +
-            ", checkMemory='" + isCheckMemory() + "'" +
-            ", checkCPU='" + isCheckCPU() + "'" +
-            ", export='" + isExport() + "'" +
-            ", exportDirectory='" + getExportDirectory() + "'" +
-            "}";
+                " check='" + isCheck() + "'" +
+                ", checkMemory='" + isCheckMemory() + "'" +
+                ", checkCPU='" + isCheckCPU() + "'" +
+                ", export='" + isExport() + "'" +
+                ", exportDirectory='" + getExportDirectory() + "'" +
+                "}";
     }
-
 
 
 }

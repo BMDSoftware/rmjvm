@@ -56,7 +56,7 @@ public class MemoryAnalysisUtil {
         heap = HeapFactory.createFastHeap(new File("c:/Users/bastiao/Projects/dicoogle/dicoogle/target/"+fileName));
 
         reportStrings();
-        printHistogram();
+        printHistogram(1000);
 
     }
 
@@ -75,7 +75,7 @@ public class MemoryAnalysisUtil {
     /**
      * Create "jmap -histo" like class histogram from dump
      */
-    public  static  void printHistogram() {
+    public  static  List<ClassRecord> printHistogram(Integer samplesNum) {
         StringCollector collector = new StringCollector();
         HeapHistogram histo = new HeapHistogram();
         collector.collect(heap, histo);
@@ -84,11 +84,12 @@ public class MemoryAnalysisUtil {
         Collections.sort(ht, HeapHistogram.BY_SIZE);
         TextTable tt = new TextTable();
         int n = 0;
-        for(ClassRecord cr: ht.subList(0, 10)) {
+        for(ClassRecord cr: ht.subList(0, samplesNum)) {
             tt.addRow("" + (++n), " " + cr.getTotalSize(), " " + cr.getInstanceCount(), " " + cr.getClassName());
 
         }
         System.out.println(tt.formatTextTableUnbordered(1000));
+        return  ht.subList(0, samplesNum);
     }
 
     /**

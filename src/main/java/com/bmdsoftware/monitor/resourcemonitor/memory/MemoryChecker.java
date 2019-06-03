@@ -27,12 +27,16 @@
 
 package com.bmdsoftware.monitor.resourcemonitor.memory;
 
+import org.gridkit.jvmtool.heapdump.HeapHistogram;
 import org.netbeans.lib.profiler.heap.Heap;
 
 import java.io.IOException;
+import java.util.List;
 
 public interface MemoryChecker {
     public void monitor() throws IOException ;
     public Heap getHeap();
+    public Long getTotalMemory() ;
+    public List<HeapHistogram.ClassRecord> getClassRecords();
 
 }

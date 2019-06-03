@@ -54,6 +54,7 @@ public class YmlConfig {
      */
 
     private static final String ACTIONS2 = "actions";
+    private boolean loaded = false;
 
     /**
      *
@@ -99,6 +100,8 @@ public class YmlConfig {
      * @throws FileNotFoundException
      */
     public void load(File f) throws FileNotFoundException {
+        if (loaded)
+            return;
 
         if (!f.exists()) {
             throw new FileNotFoundException(f.getAbsolutePath());
@@ -128,6 +131,7 @@ public class YmlConfig {
 
         }
         logger.debug("Loading configurations complete. ");
+        loaded = true;
    
     }
 
