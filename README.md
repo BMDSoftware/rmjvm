@@ -91,7 +91,26 @@ remote applications:
 ## Output - export format 
 
 
+There are summary metrics to measure: 
 
+```
+ActionName,ExecutionIteration,Timestamp,UsedMemory,CPUTime
+monitor-1,0,2019.06.03.17.20.21,19800024,46190000000
+monitor-1,1,2019.06.03.17.20.25,19856992,46900000000
+monitor-2,0,2019.06.03.17.20.26,19917168,46900000000
+monitor-2,1,2019.06.03.17.20.28,19977176,46900000000
+```
+
+
+
+There are two outputs, Heap:
+
+```
+ActionName,ExecutionIteration,NameOfObject,ByteOrderBySize,Size,Count
+monitor-1,0,java.lang.String (retained),58918,58918
+monitor-1,0,int[],29849,29849
+monitor-1,0,char[],60273,60273
+```
 
 
 
@@ -119,6 +138,8 @@ remote applications:
  You can contribute for the project by send Pull Requests.
  
  Build >= JDK12  
+ 
+ For package: mvn package. 
  
 ## Support 
 

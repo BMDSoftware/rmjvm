@@ -105,8 +105,9 @@ public class MemoryCheckImp implements MemoryChecker {
         String fileName = "heap_dump_" + new SimpleDateFormat("dd.MM.yyyy HH.mm.ss").format(new Date()) + ".hprof";
         boolean onlyLiveObjects = false;
         bean.dumpHeap(fileName, onlyLiveObjects);
+        File heapFile = new File(nameHeapFile + fileName);
 
-        heap = HeapFactory.createFastHeap(new File(nameHeapFile + fileName));
+        heap = HeapFactory.createFastHeap(heapFile);
         MemoryAnalysisUtil.heap = heap;
 
 
@@ -185,6 +186,11 @@ public class MemoryCheckImp implements MemoryChecker {
         System.out.println("average memory usage is: " + tempMemory / sampleCount);//print average memory usage
         this.totalMemory = tempMemory / sampleCount;
         jmxc.close();
+        heap = null;
+        MemoryAnalysisUtil.heap = null;
+        System.out.println("Delete the following heap: " + heapFile.getAbsolutePath());
+        heapFile.deleteOnExit();
+        System.out.println("Heap exists: " + heapFile.exists());
 
 
     }

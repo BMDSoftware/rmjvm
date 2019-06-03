@@ -15,12 +15,12 @@ actions:
     cmd: "c:\\Users\\bastiao\\Software\\dcm4che-5.16.3-bin\\dcm4che-5.16.3\\bin\\ianscu.bat -c DICOOGLE-STORAGE@localhost:6666"
     timeout: 0 # ms
     monitor: ['cpu', 'mem']
-    executions: 10
+    executions: 2
   - name: monitor-dicom-qr
     cmd: "c:\\Users\\bastiao\\Software\\dcm4che-5.16.3-bin\\dcm4che-5.16.3\\bin\\ianscu.bat -c DICOOGLE-STORAGE@localhost:1045"
     monitor: ['mem']
     timeout: 0 # ms
-    executions: 100
+    executions: 2
 
 # configure a tracer
 # there are few examples, such zipkin

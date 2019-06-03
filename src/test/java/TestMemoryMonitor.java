@@ -59,20 +59,22 @@ public class TestMemoryMonitor {
         JMXConnection con = null;
         try {
             con = new JMXConnection("service:jmx:rmi:///jndi/rmi://" + hostName + ":" + portNum + "/jmxrmi");
+
+
+            // Create a temporary directory
+            //File myTempDir = Files.createTempDir();
+            Path tempDirWithPrefix = Files.createTempDirectory("rmjvm-");
+
+            MemoryMonitor monitor = new MemoryMonitor(con);
+            monitor.initHeapDump(new File("c:/Users/bastiao/Projects/dicoogle/dicoogle/target/"));
+            String report = monitor.reportStrings();
+            String hist = monitor.printHistogram();
+            System.out.println(hist);
         }
         catch (Exception e){
             return;
         }
 
-        // Create a temporary directory 
-        //File myTempDir = Files.createTempDir();
-        Path tempDirWithPrefix = Files.createTempDirectory("rmjvm-");
-
-        MemoryMonitor monitor = new MemoryMonitor(con);
-        monitor.initHeapDump(new File("c:/Users/bastiao/Projects/dicoogle/dicoogle/target/"));
-        String report = monitor.reportStrings();
-        String hist = monitor.printHistogram();
-        System.out.println(hist);
 
     }
 
