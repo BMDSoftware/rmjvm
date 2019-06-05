@@ -9,7 +9,7 @@
  Before you use this tool, you need to be aware what are your goals. First step, is to understand what kind of application that
  you need to monitor and what are the moments to monitor and actions that you need to trigger. 
 
-![](https://i.ibb.co/WpX39XG/demo.gif)
+![](https://media.giphy.com/media/QXOR8xIX6ZnYrTdPpP/giphy.gif)
 
 
 
