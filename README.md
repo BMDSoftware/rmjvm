@@ -1,13 +1,17 @@
- # Resource Monitor for Java (rmjvm)
-  
- ## Description 
- 
+# Resource Monitor for Java (rmjvm)
+
+## Description
+
  Resource Monitor for Java is a tool that **helps** to **monitor Java process** resources and detect memory **leaks**/CPU constrains.
- 
- ## How to use?
- 
+
+## How to use?
+
  Before you use this tool, you need to be aware what are your goals. First step, is to understand what kind of application that
  you need to monitor and what are the moments to monitor and actions that you need to trigger. 
+
+![](https://media.giphy.com/media/QXOR8xIX6ZnYrTdPpP/giphy.gif)
+
+
 
 ```
 rmjvm 1.0
@@ -29,11 +33,11 @@ usage: rmjvm [-c] [-cf <arg>] [-e <arg>] [-ed <arg>] [-h] [-ho <arg>] [-p
  -s,--skip <arg>               skip the cpu or memory (--skip=mem,cpu)
 ```
 
-## Examples  
+## Examples
 
 Few examples of use of the application:
-  
- ```
+
+```
 
 $ rmjvm --help 
 $ rmjvm --version 
@@ -41,11 +45,9 @@ $ rmjvm --check
 $ rmjvm --skip mem
 $ rmjvm --skip cpu,mem
 $ rmjvm --export csv --exportdirectory /tmp/dump-reports --config conf/rmjvm-myApp.yml 
-
 ```
 
-
-## Configurations 
+## Configurations
 
 ```
 ### Please modify according your needs
@@ -72,9 +74,7 @@ actions:
 # there are few examples, such zipkin
 tracer:
   - uri: "http://my-zipkin-deployment:9201"
-
 ```
-
 
 ## Configure your Java Application
 
@@ -87,9 +87,7 @@ remote applications:
  -Dcom.sun.management.jmxremote.authenticate=false
 ```
 
-
-## Output - export format 
-
+## Output - export format
 
 There are summary metrics to measure: 
 
@@ -101,8 +99,6 @@ monitor-2,0,2019.06.03.17.20.26,19917168,46900000000
 monitor-2,1,2019.06.03.17.20.28,19977176,46900000000
 ```
 
-
-
 There are two outputs, Heap:
 
 ```
@@ -112,39 +108,39 @@ monitor-1,0,int[],29849,29849
 monitor-1,0,char[],60273,60273
 ```
 
+## Recommended tools
 
-
- ## Recommended tools 
- 
  You should be aware at least of the following tools, that probably could help you find your issues:
- 
- - jConsole 
- - Mission Control and Flight Recorder
- - Oracle VisualVM
- - JVM tools: https://github.com/aragozin/jvm-tools/
- - Eclipse Memory Analyser: MAT
- 
- **Note**: rmjvm was mainly developed to track the memory after specific commands and to know exactly what is increasing over the
- time. Other tools are allowed to do real time monitoring and explore/monitoring and trigger specific JMX Mbeans. The main
- reason to build rmjvm was mainly due to some programatic triggers that was needed. 
+
+- jConsole 
+- Mission Control and Flight Recorder
+- Oracle VisualVM
+- JVM tools: https://github.com/aragozin/jvm-tools/
+- Eclipse Memory Analyser: MAT
   
+  **Note**: rmjvm was mainly developed to track the memory after specific commands and to know exactly what is increasing over the
+  
+  time. Other tools are allowed to do real time monitoring and explore/monitoring and trigger specific JMX Mbeans. The main
+  
+  reason to build rmjvm was mainly due to some programatic triggers that was needed. 
+
 ## Other resources
 
- - https://www.sderosiaux.com/articles/2017/02/14/all-the-things-we-can-do-with-jmx/  
- - https://sysdig.com/blog/jmx-monitoring-custom-metrics/ 
- 
- ## Contribute 
- 
- You can contribute for the project by send Pull Requests.
- 
- Build >= JDK12  
- 
- For package: mvn package. 
- 
-## Support 
+- https://www.sderosiaux.com/articles/2017/02/14/all-the-things-we-can-do-with-jmx/  
+- https://sysdig.com/blog/jmx-monitoring-custom-metrics/ 
+  
+  ## Contribute
+  
+  You can contribute for the project by send Pull Requests.
+  
+  Build >= JDK12  
+  
+  For package: mvn package. 
+
+## Support
 
 It is an open source project and no enterprise support is provided, only by the community.
- 
+
 [<img src="https://raw.githubusercontent.com/wiki/BMDSoftware/dicoogle/images/bmd.png" height="64" alt="BMD Software">](https://www.bmd-software.com)
 
 Please contact [BMD Software](https://www.bmd-software.com) for more information.
